@@ -37,8 +37,12 @@ param environment = [
     value: 'TODO-public-url-after-first-deploy'
   }
   {
-    name: 'TargetResource__Url'
-    value: 'TODO-target-resource-url'
+    name: 'DownstreamApi__Scope'
+    value: 'TODO-obo-scope-ending-in-.default-e.g.-https://org.crm4.dynamics.com/.default'
+  }
+  {
+    name: 'DownstreamApi__BaseUrl'
+    value: 'TODO-api-base-url-e.g.-https://org.crm4.dynamics.com/api/data/v9.2'
   }
   {
     name: 'IsTransportStateless'

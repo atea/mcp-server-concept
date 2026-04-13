@@ -7,7 +7,10 @@ namespace {{ServerName}}.Services;
 
 public class {{ServerName}}Service : BaseHttpService
 {
-    private readonly string _resourceUrl;
+    // Scope must end in /.default for MSAL OBO.
+    // Examples: "https://org.crm4.dynamics.com/.default", "https://analysis.windows.net/powerbi/api/.default"
+    private readonly string _scope;
+    private readonly string _baseUrl;
     private readonly TokenContextAccessor _tokenContextAccessor;
     private readonly TokenExchangeService _tokenExchangeService;
 
@@ -19,8 +22,10 @@ public class {{ServerName}}Service : BaseHttpService
         TokenExchangeService tokenExchangeService)
         : base(configuration, client, logger)
     {
-        _resourceUrl = configuration["TargetResource:Url"]
-            ?? throw new InvalidOperationException("TargetResource:Url is not configured");
+        _scope = configuration["DownstreamApi:Scope"]
+            ?? throw new InvalidOperationException("DownstreamApi:Scope is not configured");
+        _baseUrl = configuration["DownstreamApi:BaseUrl"]
+            ?? throw new InvalidOperationException("DownstreamApi:BaseUrl is not configured");
         _tokenContextAccessor = tokenContextAccessor;
         _tokenExchangeService = tokenExchangeService;
     }
@@ -28,12 +33,12 @@ public class {{ServerName}}Service : BaseHttpService
     public async Task<string> GetDataAsync(string input)
     {
         var tokenContext = _tokenContextAccessor.TokenValidatedContext;
-        var accessToken = await _tokenExchangeService.ExchangeTokenAsync(tokenContext, _resourceUrl);
+        var accessToken = await _tokenExchangeService.ExchangeTokenAsync(tokenContext, _scope);
 
         _client.DefaultRequestHeaders.Remove("Authorization");
         _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
 
-        var url = $"{_resourceUrl}/TODO-replace-with-endpoint/{Uri.EscapeDataString(input)}";
+        var url = $"{_baseUrl}/TODO-replace-with-endpoint/{Uri.EscapeDataString(input)}";
         return await GetAsync(url);
     }
 }

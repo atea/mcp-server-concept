@@ -105,7 +105,8 @@ Open `Infrastructure/containerApp-{ServerName}.bicepparam` and replace every `TO
 | `EntraIdAuth__PublicUrl` | Leave as `TODO` for now — fill in after the first successful deploy |
 | **apikey only:** `EntraIdAuth__TenantId` | Your Entra ID tenant ID (obo and noauth read this from Key Vault instead) |
 | **apikey / noauth:** `{ApiConfigSection}__BaseUrl` | Base URL of the upstream API |
-| **obo only:** `TargetResource__Url` | App ID URI or resource URL of the downstream Entra ID-protected API (e.g. `https://analysis.windows.net/powerbi/api`) |
+| **obo only:** `DownstreamApi__Scope` | OBO scope for the downstream Entra ID-protected API — must end in `/.default` (e.g. `https://org.crm4.dynamics.com/.default`, `https://analysis.windows.net/powerbi/api/.default`) |
+| **obo only:** `DownstreamApi__BaseUrl` | Base URL of the downstream API (e.g. `https://org.crm4.dynamics.com/api/data/v9.2`, `https://api.powerbi.com/v1.0/myorg`) |
 
 ### 2. Create Key Vault secrets
 
@@ -176,7 +177,7 @@ The generated service and tool contain placeholder implementations — replace t
 **`MCPServers/{ServerName}/Services/{ServerName}Service.cs`**
 - Inherits from `BaseHttpService` which provides `GetAsync<T>` and `PostAsync<T>` helpers with structured logging
 - **apikey**: reads `{ApiConfigSection}:ApiKey` and `{ApiConfigSection}:BaseUrl` from `IConfiguration`; sends the key as `X-Api-Key` header
-- **obo**: injects `ITokenContextAccessor` and `TokenExchangeService`; calls `ExchangeTokenAsync(scope)` using the signed-in user's token to obtain a delegated bearer token for the downstream API
+- **obo**: reads `DownstreamApi:Scope` (OBO scope) and `DownstreamApi:BaseUrl` from `IConfiguration`; exchanges the signed-in user's token via MSAL OBO using the scope, then calls the API with the resulting bearer token
 - **noauth**: reads `{ApiConfigSection}:BaseUrl` from `IConfiguration`; no auth header added
 
 **`MCPServers/{ServerName}/Tools/{ServerName}Tool.cs`**

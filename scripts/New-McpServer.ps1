@@ -300,7 +300,7 @@ try {
         'obo' {
             Write-Host "  2. Create Key Vault secrets: ${serverNameLower}clientid, ${serverNameLower}clientsecret, ${serverNameLower}tenantid"
             Write-Host "  3. Configure the Entra ID app registration (expose api://<clientId>/mcp.tools scope)"
-            Write-Host "  4. Configure the target resource app registration and grant your app the OBO permission"
+            Write-Host "  4. Fill in DownstreamApi__Scope (OBO scope ending in /.default) and DownstreamApi__BaseUrl in the bicepparam"
             Write-Host "  5. Implement your business logic in MCPServers/$ServerName/Services/${ServerName}Service.cs"
             Write-Host "  6. Implement your tool methods in MCPServers/$ServerName/Tools/${ServerName}Tool.cs"
             Write-Host "  7. Fill in dev credentials in MCPServers/$ServerName/appsettings.Development.json"

@@ -150,7 +150,8 @@ Open `Infrastructure/containerApp-{ServerName}.bicepparam` and replace all `TODO
 | `TODO-container-apps-environment-name` | Your `EnvironmentName` from step 2 |
 | `TODO-resource-group-name` | `rg-{EnvironmentName}` |
 | `TODO-upstream-api-base-url` | Base URL of the upstream API *(apikey and noauth only)* |
-| `TODO-target-resource-url` | App ID URI of the downstream Entra ID-protected API *(obo only)* |
+| `TODO-obo-scope` | OBO scope for the downstream API, must end in `/.default` *(obo only)* |
+| `TODO-api-base-url` | Base URL of the downstream API *(obo only)* |
 | `TODO-tenant-id` | Tenant ID from step 4 *(apikey only — obo and noauth read this from Key Vault)* |
 | `TODO-public-url-after-first-deploy` | Leave for now — fill in after the first deploy (step 10) |
 

@@ -26,13 +26,13 @@ public class TokenExchangeService
     /// Uses the OAuth 2.0 On-Behalf-Of flow.
     /// </summary>
     /// <param name="tokenValidatedContext">The validated token context from MCP authentication</param>
-    /// <param name="targetResource">The resource scope to request (e.g., "https://org.crm4.dynamics.com/.default")</param>
-    /// <returns>Access token for the target resource, or null if exchange fails</returns>
+    /// <param name="scope">The OAuth 2.0 scope to request — must end in <c>/.default</c> (e.g. <c>https://org.crm4.dynamics.com/.default</c>)</param>
+    /// <returns>Access token for the requested scope, or null if the exchange fails</returns>
     public async Task<string?> ExchangeTokenAsync(
         TokenValidatedContext? tokenValidatedContext,
-        string targetResource)
+        string scope)
     {
-        _logger.LogInformation("Attempting to acquire token for resource: {Resource}", targetResource);
+        _logger.LogInformation("Attempting to acquire token for scope: {Scope}", scope);
 
         var incomingToken = tokenValidatedContext?.SecurityToken.UnsafeToString();
         if (string.IsNullOrEmpty(incomingToken))
@@ -61,13 +61,13 @@ public class TokenExchangeService
         var userAssertion = new UserAssertion(incomingToken);
         try
         {
-            var result = await cca.AcquireTokenOnBehalfOf(new[] { targetResource }, userAssertion).ExecuteAsync();
-            _logger.LogInformation("Token acquired successfully for resource: {Resource}", targetResource);
+            var result = await cca.AcquireTokenOnBehalfOf(new[] { scope }, userAssertion).ExecuteAsync();
+            _logger.LogInformation("Token acquired successfully for scope: {Scope}", scope);
             return result.AccessToken;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to acquire token for {Resource}: {Message}", targetResource, ex.Message);
+            _logger.LogError(ex, "Failed to acquire token for {Scope}: {Message}", scope, ex.Message);
             return null;
         }
     }
@@ -87,7 +87,7 @@ public class TokenExchangeService
         TokenValidatedContext? tokenValidatedContext,
         string dynamicsBaseUrl)
     {
-        var resource = $"{dynamicsBaseUrl}/.default";
-        return ExchangeTokenAsync(tokenValidatedContext, resource);
+        var scope = $"{dynamicsBaseUrl}/.default";
+        return ExchangeTokenAsync(tokenValidatedContext, scope);
     }
 }
