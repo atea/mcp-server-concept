@@ -27,7 +27,7 @@ public class {{ServerName}}Service : BaseHttpService
 
     public async Task<string> GetDataAsync(string input)
     {
-        var tokenContext = _tokenContextAccessor.GetTokenValidatedContext();
+        var tokenContext = _tokenContextAccessor.TokenValidatedContext;
         var accessToken = await _tokenExchangeService.ExchangeTokenAsync(tokenContext, _resourceUrl);
 
         _client.DefaultRequestHeaders.Remove("Authorization");

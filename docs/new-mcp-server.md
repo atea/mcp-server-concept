@@ -35,12 +35,13 @@ Determines how the server calls its upstream API. The server **always** verifies
 
 | AuthType | Choose when … |
 |---|---|
-| **`apikey`** | The upstream API authenticates with a static key (sent as a header or query parameter). Simpler to set up. |
-| **`entraid`** | The upstream API requires a user-delegated Entra ID token — e.g. Dynamics 365, Power BI, Microsoft Graph. The server performs an OAuth 2.0 On-Behalf-Of (OBO) exchange so the upstream API sees the signed-in user's identity. |
+| **`obo`** | The upstream API requires a user-delegated Entra ID token — e.g. Dynamics 365, Power BI, Microsoft Graph. The server performs an OAuth 2.0 On-Behalf-Of (OBO) exchange so the upstream API sees the signed-in user's identity. |
+| **`apikey`** | The upstream API authenticates with a static key sent as a request header. |
+| **`noauth`** | The upstream API has no authentication (open or internal API). |
 
-### ApiConfigSection *(API Key mode only)*
+### ApiConfigSection *(apikey and noauth only)*
 
-The configuration section name used in `appsettings.json` for the upstream API settings (`BaseUrl` and `ApiKey`). Leave blank to auto-derive as `{ServerName}Api` (e.g. `WeatherForecastApi`).
+The configuration section name used in `appsettings.json` for the upstream API settings (`BaseUrl`, and `ApiKey` for apikey mode). Leave blank to auto-derive as `{ServerName}Api` (e.g. `WeatherForecastApi`). Ignored for `obo`.
 
 ### Port
 
@@ -101,10 +102,10 @@ Open `Infrastructure/containerApp-{ServerName}.bicepparam` and replace every `TO
 |---|---|
 | `environmentName` | The short environment name from `/setup-deployment` (e.g. `mymcpenv`) |
 | `resourceGroupName` | The resource group from `/setup-deployment` (e.g. `rg-mymcpenv`) |
-| `EntraIdAuth__TenantId` | Your Entra ID tenant ID (API Key mode only — EntraId mode reads this from Key Vault) |
 | `EntraIdAuth__PublicUrl` | Leave as `TODO` for now — fill in after the first successful deploy |
-| **API Key mode:** `{ApiConfigSection}__BaseUrl` | Base URL of the upstream API |
-| **EntraId mode:** `TargetResource__Url` | App ID URI or resource URL of the downstream API (e.g. `https://analysis.windows.net/powerbi/api`) |
+| **apikey only:** `EntraIdAuth__TenantId` | Your Entra ID tenant ID (obo and noauth read this from Key Vault instead) |
+| **apikey / noauth:** `{ApiConfigSection}__BaseUrl` | Base URL of the upstream API |
+| **obo only:** `TargetResource__Url` | App ID URI or resource URL of the downstream Entra ID-protected API (e.g. `https://analysis.windows.net/powerbi/api`) |
 
 ### 2. Create Key Vault secrets
 
@@ -114,7 +115,7 @@ Secrets are read by the Container App via the User-Assigned Managed Identity. Cr
 az keyvault secret set --vault-name {EnvironmentName} --name {SecretName} --value {SecretValue}
 ```
 
-#### API Key mode
+#### apikey
 
 | Key Vault secret name | Description |
 |---|---|
@@ -122,13 +123,23 @@ az keyvault secret set --vault-name {EnvironmentName} --name {SecretName} --valu
 | `{ServerName}ClientId` | Client ID of the Entra ID app registration for this MCP server |
 | `{ServerName}ClientSecret` | Client secret of the Entra ID app registration |
 
-#### Entra ID (OBO) mode
+> **Note:** For `apikey` the tenant ID is a plain environment variable in the bicepparam (`EntraIdAuth__TenantId`), not a Key Vault secret.
+
+#### obo
 
 | Key Vault secret name | Description |
 |---|---|
 | `{ServerName}ClientId` | Client ID of the Entra ID app registration for this MCP server |
 | `{ServerName}ClientSecret` | Client secret of the Entra ID app registration |
-| `{ServerName}TenantId` | Tenant ID of the Entra ID app registration |
+| `{ServerName}TenantId` | Tenant ID — stored in Key Vault so it is masked in logs |
+
+#### noauth
+
+| Key Vault secret name | Description |
+|---|---|
+| `{ServerName}ClientId` | Client ID of the Entra ID app registration for this MCP server |
+| `{ServerName}ClientSecret` | Client secret of the Entra ID app registration |
+| `{ServerName}TenantId` | Tenant ID — stored in Key Vault so it is masked in logs |
 
 > **Tip:** Secret names in Key Vault are PascalCase (e.g. `WeatherForecastApiKey`). The bicepparam template maps them to lowercase `secretRef` keys internally — do not change the casing in the bicepparam file.
 
@@ -164,8 +175,9 @@ The generated service and tool contain placeholder implementations — replace t
 
 **`MCPServers/{ServerName}/Services/{ServerName}Service.cs`**
 - Inherits from `BaseHttpService` which provides `GetAsync<T>` and `PostAsync<T>` helpers with structured logging
-- API Key mode: inject `IConfiguration` to read `{ApiConfigSection}:ApiKey` and `{ApiConfigSection}:BaseUrl`
-- EntraId mode: inject `TokenExchangeService` and call `ExchangeTokenAsync(scope)` to get a downstream bearer token, then call the upstream API with it
+- **apikey**: reads `{ApiConfigSection}:ApiKey` and `{ApiConfigSection}:BaseUrl` from `IConfiguration`; sends the key as `X-Api-Key` header
+- **obo**: injects `ITokenContextAccessor` and `TokenExchangeService`; calls `ExchangeTokenAsync(scope)` using the signed-in user's token to obtain a delegated bearer token for the downstream API
+- **noauth**: reads `{ApiConfigSection}:BaseUrl` from `IConfiguration`; no auth header added
 
 **`MCPServers/{ServerName}/Tools/{ServerName}Tool.cs`**
 - Decorate methods with `[McpServerTool]` and `[Description("…")]` — these descriptions appear in Copilot

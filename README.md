@@ -44,7 +44,7 @@ GitHub Copilot / Copilot Studio
 │  Tool  →  Service                             │
 └───────────────────────────────────────────────┘
         │
-        │  API Key  ──or──  OBO Bearer token
+        │  API Key  ──or──  OBO bearer token  ──or──  (no auth)
         ▼
    Upstream API  (Dynamics 365, Power BI, custom …)
 ```
@@ -81,18 +81,13 @@ GitHub Copilot / Copilot Studio
 
 ## Step-by-Step Guide
 
-### 1. Clone and push to your own repo
+### 1. Fork the repository
+
+Fork this repository into your own GitHub organisation using the **Fork** button at the top of the page, then clone your fork locally:
 
 ```bash
-git clone https://github.com/atea/mcp-server-concept.git
-cd mcp-server-concept
-```
-
-Create a new empty repo in your GitHub organisation, then push:
-
-```bash
-git remote set-url origin https://github.com/{your-org}/{your-repo}.git
-git push -u origin main
+git clone https://github.com/{your-org}/{your-repo}.git
+cd {your-repo}
 ```
 
 ### 2. Run `/setup-deployment` in GitHub Copilot Chat
@@ -154,19 +149,26 @@ Open `Infrastructure/containerApp-{ServerName}.bicepparam` and replace all `TODO
 |---|---|
 | `TODO-container-apps-environment-name` | Your `EnvironmentName` from step 2 |
 | `TODO-resource-group-name` | `rg-{EnvironmentName}` |
-| `TODO-upstream-api-base-url` | Base URL of the API your server will call *(API Key mode only)* |
-| `TODO-tenant-id` | Tenant ID from step 4 *(API Key mode only — EntraId mode reads this from Key Vault)* |
+| `TODO-upstream-api-base-url` | Base URL of the upstream API *(apikey and noauth only)* |
+| `TODO-target-resource-url` | App ID URI of the downstream Entra ID-protected API *(obo only)* |
+| `TODO-tenant-id` | Tenant ID from step 4 *(apikey only — obo and noauth read this from Key Vault)* |
 | `TODO-public-url-after-first-deploy` | Leave for now — fill in after the first deploy (step 10) |
 
 ### 8. Create Key Vault secrets
 
-In the [Azure Portal](https://portal.azure.com), open your Key Vault (`{EnvironmentName}`) and add the secrets. For API Key auth:
+In the [Azure Portal](https://portal.azure.com), open your Key Vault (`{EnvironmentName}`) and add the secrets.
 
+For **apikey** auth:
 - `{ServerName}ApiKey` — the upstream API key
 - `{ServerName}ClientId` — Client ID from step 4
 - `{ServerName}ClientSecret` — Client Secret from step 4
 
-For Entra ID (OBO) auth, see [docs/new-mcp-server.md — Key Vault secrets](docs/new-mcp-server.md#key-vault-secrets).
+For **obo** or **noauth** auth:
+- `{ServerName}ClientId` — Client ID from step 4
+- `{ServerName}ClientSecret` — Client Secret from step 4
+- `{ServerName}TenantId` — Tenant ID (stored in Key Vault so it is masked in logs)
+
+For all three auth types, see [docs/new-mcp-server.md — Create Key Vault secrets](docs/new-mcp-server.md#2-create-key-vault-secrets).
 
 ### 9. Commit and push
 
@@ -212,10 +214,10 @@ docs/
 
 ## Authentication Models
 
-The scaffold supports two authentication models for the upstream API your MCP server calls:
+All MCP servers in this scaffold protect their own endpoint with **Entra ID JWT bearer** (inbound auth). The `AuthType` only controls how the **service layer** calls the downstream API.
 
-**API Key** — the upstream API authenticates with a static key passed as a header or query parameter. Suitable for third-party APIs or internal services using API key auth. The key is stored in Key Vault and injected as an environment variable at runtime.
+**obo (On-Behalf-Of)** — the downstream API uses Entra ID (e.g. Dynamics 365, Power BI, Microsoft Graph). The MCP server performs an OAuth 2.0 On-Behalf-Of token exchange using MSAL so requests are made in the context of the signed-in user. Client credentials are stored in Key Vault.
 
-**Entra ID (On-Behalf-Of)** — the upstream API uses Entra ID (e.g. Dynamics 365, Power BI, Microsoft Graph). The MCP server performs an OAuth 2.0 On-Behalf-Of token exchange using MSAL, so the request is made in the context of the signed-in user. The server's own client credentials (used for the exchange) are stored in Key Vault.
+**apikey** — the downstream API authenticates with a static key passed as a request header. The key is stored in Key Vault and injected as an environment variable at runtime.
 
-In both cases, **inbound authentication** (Copilot → your MCP server) always uses Entra ID via a JWT bearer token validated against the server's own app registration.
+**noauth** — the downstream API has no authentication (open or internal API). No auth header is sent to the upstream API.

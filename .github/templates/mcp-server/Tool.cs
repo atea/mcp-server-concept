@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
-using MCPServers.Shared.Services;
 using {{ServerName}}.Services;
 
 namespace {{ServerName}};
