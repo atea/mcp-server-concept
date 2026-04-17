@@ -44,7 +44,7 @@ module acr 'br/public:avm/res/container-registry/registry:0.9.1' = {
       }
       { 
         principalId: deployer().objectId
-        principalType: 'User'
+        principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: 'AcrPush'
       }
     ]

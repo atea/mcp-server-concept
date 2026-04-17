@@ -157,7 +157,19 @@ Clear `SP_JSON` from the shell variable after use.
 
 ---
 
-## Step 8 — Print completion checklist
+## Step 8 — Copy workflow templates to workflows folder
+
+Copy the three GitHub Actions workflow templates from `.github/templates/` to `.github/workflows/`:
+
+```
+cp .github/templates/deploy-bicep.yml .github/workflows/
+cp .github/templates/docker-deploy-containerapp-template.yml .github/workflows/
+cp .github/templates/docker-publish-template.yml .github/workflows/
+```
+
+---
+
+## Step 9 — Print completion checklist
 
 Print a checklist of every action completed. Mark each item ✅:
 
@@ -169,18 +181,6 @@ Print a checklist of every action completed. Mark each item ✅:
 ✅ ACR_NAME_DEV variable set to {EnvironmentName}
 ✅ ACR_NAME_PROD variable set to {EnvironmentName}
 ✅ Workflow templates copied to .github/workflows/
-```
-
----
-
-## Step 9 — Copy workflow templates to workflows folder
-
-Copy the three GitHub Actions workflow templates from `.github/templates/` to `.github/workflows/`:
-
-```
-cp .github/templates/deploy-bicep.yml .github/workflows/
-cp .github/templates/docker-deploy-containerapp-template.yml .github/workflows/
-cp .github/templates/docker-publish-template.yml .github/workflows/
 ```
 
 ---
