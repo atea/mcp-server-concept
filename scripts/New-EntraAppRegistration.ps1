@@ -80,6 +80,39 @@ function Ensure-OAuth2PermissionGrant {
     return 'created'
 }
 
+function Ensure-KeyVaultSecretsOfficerRole {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$KeyVaultId
+    )
+
+    $requiredRoles = @('Key Vault Secrets Officer', 'Key Vault Administrator')
+    
+    $roleAssignments = Invoke-AzTsv "role assignment list --scope `"$KeyVaultId`" --query `"[].roleDefinitionName`" -o tsv"
+    
+    foreach ($role in $requiredRoles) {
+        if ($roleAssignments -contains $role) {
+            return $true
+        }
+    }
+    
+    # User doesn't have the required role, assign it
+    Write-Host "User does not have Key Vault Secrets Officer role. Assigning now..."
+    
+    $currentUser = Invoke-AzTsv "ad signed-in-user show --query id -o tsv"
+    if ([string]::IsNullOrWhiteSpace($currentUser)) {
+        throw "Unable to determine current user identity. Cannot assign Key Vault Secrets Officer role."
+    }
+    
+    try {
+        $null = Invoke-AzTsv "role assignment create --role `"Key Vault Secrets Officer`" --assignee-object-id `"$currentUser`" --scope `"$KeyVaultId`""
+        Write-Host "Successfully assigned Key Vault Secrets Officer role to current user."
+        return $true
+    } catch {
+        throw "Failed to assign Key Vault Secrets Officer role: $_"
+    }
+}
+
 try {
     if ($AccountType -eq 'agent' -and [string]::IsNullOrWhiteSpace($McpAppId)) {
         throw 'McpAppId is required when AccountType is agent.'
@@ -92,8 +125,10 @@ try {
 
     $kvId = Invoke-AzTsv "keyvault show --name $KeyVaultName --subscription $SubscriptionId --query id -o tsv"
     if ([string]::IsNullOrWhiteSpace($kvId)) {
-        throw "Key Vault '$KeyVaultName' not found in subscription $SubscriptionId or access denied."
+        throw "Key Vault '$KeyVaultName' not found in sbsucription $SubscriptionId or access denied."
     }
+
+    Ensure-KeyVaultSecretsOfficerRole -KeyVaultId $kvId
 
     $appId = Invoke-AzTsv "ad app list --filter `"displayName eq '$appDisplayName'`" --query `"[0].appId`" -o tsv"
     $appExists = -not [string]::IsNullOrWhiteSpace($appId)
