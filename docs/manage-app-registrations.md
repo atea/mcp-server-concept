@@ -84,7 +84,7 @@ Run:
 
 - Creates an app registration named `mcp-{ServerName}`
 - Exposes an API scope `api://{AppId}/mcp.tools` for delegated access
-- Adds Microsoft Graph `User.Read` delegated permission
+- Adds Microsoft Graph delegated permissions (`User.Read`, `offline_access`, `profile`) and grants admin consent
 - Creates a 10-year client secret
 - Stores four secrets in Key Vault:
   - `mcp-{ServerName}` — JSON payload with all credentials
@@ -100,16 +100,45 @@ Run:
 | **KeyVaultName** | Name of the Azure Key Vault | `mymcpenv` |
 | **SubscriptionId** | Azure subscription containing the Key Vault | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
 
+### Step-by-step walkthrough
+
+**Step 0 — Run prerequisite and access checks**
+
+Runs `scripts/Validate-ProvisioningEnvironment.ps1` (no flags — includes Key Vault check). Verifies that Azure CLI is authenticated, you have the required Entra ID role, and at least one Key Vault is accessible in the current subscription.
+
+**Step 1 — Collect inputs**
+
+The agent asks for `ServerName`, `KeyVaultName`, and prompts you to confirm or override the active Azure subscription.
+
+**Step 2 — Create or update the app registration**
+
+Runs:
+
+```
+scripts/New-EntraAppRegistration.ps1 -ServerName "{ServerName}" -KeyVaultName "{KeyVaultName}" -SubscriptionId "{SubscriptionId}" -AccountType mcp
+```
+
+**Step 3 — Print completion checklist**
+
+Prints all created resources and Key Vault secret names. Does not print secret values.
+
 ### Example output
 
 ```
-✅ App registration 'mcp-WeatherForecast' created (AppId: 12345678-1234-1234-1234-123456789012)
+✅ App registration 'mcp-WeatherForecast' configured
+✅ Enterprise Application for '12345678-1234-1234-1234-123456789012' verified
+✅ Application ID URI: api://12345678-1234-1234-1234-123456789012
 ✅ API scope api://12345678-1234-1234-1234-123456789012/mcp.tools exposed
-✅ Microsoft Graph User.Read delegated permission added
+✅ Microsoft Graph delegated permissions added (User.Read, offline_access, profile)
+✅ Admin consent granted
 ✅ Client secret created (10-year expiry)
 ✅ Key Vault secrets stored in mymcpenv
 
-Next step: Run /create-agent-account to create the agent app registration...
+Key Vault secrets created:
+- mcp-WeatherForecast
+- WeatherForecastClientId
+- WeatherForecastClientSecret
+- WeatherForecastTenantId
 ```
 
 ### Idempotent behavior
@@ -151,16 +180,40 @@ Run:
 | **KeyVaultName** | Same as used in `/create-mcp-account` | `mymcpenv` |
 | **SubscriptionId** | Azure subscription containing the Key Vault | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
 
+### Step-by-step walkthrough
+
+**Step 0 — Run prerequisite and access checks**
+
+Runs `scripts/Validate-ProvisioningEnvironment.ps1` (no flags — includes Key Vault check). Verifies that Azure CLI is authenticated, you have the required Entra ID role, and at least one Key Vault is accessible in the current subscription.
+
+**Step 1 — Collect inputs**
+
+The agent asks for `ServerName`, `McpAppId` (the Application ID from `/create-mcp-account`), `KeyVaultName`, and prompts you to confirm or override the active Azure subscription.
+
+**Step 2 — Create or update the agent app registration**
+
+Runs:
+
+```
+scripts/New-EntraAppRegistration.ps1 -ServerName "{ServerName}" -McpAppId "{McpAppId}" -KeyVaultName "{KeyVaultName}" -SubscriptionId "{SubscriptionId}" -AccountType agent
+```
+
+**Step 3 — Print completion checklist**
+
+Prints the agent app registration details and the Key Vault secret name. Does not print secret values.
+
 ### Example output
 
 ```
-✅ App registration 'agent-WeatherForecast' created (AppId: 87654321-4321-4321-4321-210987654321)
+✅ App registration 'agent-WeatherForecast' configured
+✅ Enterprise Application for '87654321-4321-4321-4321-210987654321' verified
+✅ Description set
 ✅ Microsoft Graph delegated permissions added (User.Read, offline_access, profile)
-✅ Delegated permission added to MCP app scope api://12345678-1234-1234-1234-123456789012/mcp.tools
+✅ Delegated permission granted to MCP app scope api://12345678-1234-1234-1234-123456789012/mcp.tools
 ✅ Client secret created (10-year expiry)
 ✅ Key Vault secret stored in mymcpenv
 
-Next step: If this is a Copilot client app, run /set-reply-uri to add the client's redirect URI...
+Key Vault secret created: agent-WeatherForecast
 ```
 
 ### Idempotent behavior
@@ -196,22 +249,49 @@ Run (only if the agent is a **web client application** using OAuth 2.0 redirects
 ### What it does
 
 - Adds a web reply URI (OAuth 2.0 redirect URI) to an app registration
-- Looks up the app by Application ID (GUID) or display name
-- If multiple apps have the same name, prompts you to choose the correct one
+- Looks up the app by display name; if multiple registrations share the same name, prompts you to choose the correct one
 - Idempotent: no-op if the URI already exists
-- Does not require Key Vault access (no secrets written)
+- Does not write secrets to Key Vault
 
 ### Inputs
 
 | Input | Description | Example |
 |---|---|---|
-| **AppIdentifier** | Application ID (GUID) or display name | `87654321-4321-4321-4321-210987654321` or `agent-WeatherForecast` |
+| **AppDisplayName** | Display name of the app registration | `agent-WeatherForecast` or `mcp-PartnerCenter` |
 | **ReplyUri** | HTTPS web redirect URI | `https://myapp.azurewebsites.net/auth/callback` |
+
+### Step-by-step walkthrough
+
+**Step 0 — Run prerequisite and access checks**
+
+Runs `scripts/Validate-ProvisioningEnvironment.ps1` (no flags — includes Key Vault check). Verifies that Azure CLI is authenticated and you have the required Entra ID role.
+
+**Step 1 — Collect inputs and look up the app**
+
+The agent asks for `AppDisplayName` and `ReplyUri` (must start with `https://`). It then searches for matching app registrations by display name using `az ad app list`:
+
+- **Exactly one match** — proceeds automatically
+- **Multiple matches** — prompts you to select the correct one
+- **No matches** — stops with an error
+
+**Step 2 — Add the reply URI**
+
+Runs:
+
+```
+scripts/Set-ReplyUri.ps1 -AppId "{AppId}" -ReplyUri "{ReplyUri}"
+```
+
+The script is idempotent — if the URI already exists it reports it without making any changes.
+
+**Step 3 — Print completion**
+
+Prints the full updated list of web reply URIs on the app registration.
 
 ### Example output
 
 ```
-✅ Reply URI added to app registration '87654321-4321-4321-4321-210987654321'
+✅ Reply URI added to app registration 'agent-WeatherForecast' (87654321-4321-4321-4321-210987654321)
 
 Web reply URIs:
   - https://myapp.azurewebsites.net/auth/callback
@@ -277,14 +357,13 @@ All secrets are stored in the Key Vault with exact casing as shown. Application 
 2. Verify you have Key Vault Secrets Officer or higher role on the Key Vault
 3. If using a different subscription, verify you set the correct SubscriptionId
 
-### "App registration '{AppIdentifier}' not found"
+### "App registration '{AppDisplayName}' not found"
 
 **Problem:** The app registration does not exist or the name is wrong.
 
 **Solution (for `/set-reply-uri`):**
-1. Verify the display name or Application ID is correct
-2. Use the Application ID (GUID) instead of the display name for a more reliable lookup
-3. Check the [Azure Portal](https://portal.azure.com) under **Entra ID > App registrations** to find the correct name or ID
+1. Verify the display name is correct — it must match exactly (e.g. `agent-WeatherForecast`)
+2. Check the [Azure Portal](https://portal.azure.com) under **Entra ID > App registrations** to confirm the exact display name
 
 ### "Insufficient privileges to complete operation"
 

@@ -6,7 +6,11 @@ param(
 
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')]
-    [string]$SubscriptionId
+    [string]$SubscriptionId,
+
+    [Parameter(Mandatory = $true)]
+    [ValidatePattern('^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$')]
+    [string]$RepoNameWithOwner
 )
 
 $ErrorActionPreference = 'Stop'
@@ -56,6 +60,10 @@ $spObj   = $null
 $resetObj = $null
 
 try {
+    if ($RepoNameWithOwner -ieq 'atea/mcp-server-concept') {
+        Fail 'Deployment to atea/mcp-server-concept is not allowed. Provide your own organisation''s repository.'
+    }
+
     # --- Idempotent service principal ---
     $existingAppId = Invoke-Az @('ad', 'sp', 'list', '--filter', "displayName eq '$spName'", '--query', '[0].appId', '-o', 'tsv')
 
@@ -87,12 +95,12 @@ try {
     }
 
     # --- Store credentials in GitHub (pipe directly — never write to disk or print) ---
-    $spJson | & gh secret set AZURE_CREDENTIALS --app actions
+    $spJson | & gh secret set AZURE_CREDENTIALS --app actions --repo $RepoNameWithOwner
     if ($LASTEXITCODE -ne 0) {
         throw 'Failed to set AZURE_CREDENTIALS secret via gh CLI.'
     }
 
-    & gh variable set ACR_NAME --body $AcrName
+    & gh variable set ACR_NAME --body $AcrName --repo $RepoNameWithOwner
     if ($LASTEXITCODE -ne 0) {
         throw 'Failed to set ACR_NAME variable via gh CLI.'
     }
@@ -103,10 +111,11 @@ try {
     $resetObj = $null
 
     [ordered]@{
-        success      = $true
-        errorMessage = $null
-        spName       = $spName
-        roleAssigned = $roleAssigned
+        success           = $true
+        errorMessage      = $null
+        spName            = $spName
+        roleAssigned      = $roleAssigned
+        repoNameWithOwner = $RepoNameWithOwner
     } | ConvertTo-Json -Depth 3 -Compress
 } catch {
     $spJson   = $null
