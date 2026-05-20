@@ -90,6 +90,30 @@ Run the validation script:
 
 Parse the JSON output. If `success` is `false`, stop and show the user the `errorMessage`.
 
+Resolve the target GitHub repository from the `repoNameWithOwner` field in the output:
+
+- If `repoNameWithOwner` is a non-empty string → set `{RepoNameWithOwner}` to that value and echo:
+  > Targeting repository: **{RepoNameWithOwner}**
+- If `repoNameWithOwner` is empty (the current directory resolved to `atea/mcp-server-concept` or could not be determined) → call `vscode_askQuestions` with exactly this question:
+
+```json
+{
+  "questions": [
+    {
+      "header": "RepoNameWithOwner",
+      "question": "Which GitHub repository should this deployment target? Format: org/repo-name (e.g. acme/mcp-server-concept).",
+      "allowFreeformInput": true
+    }
+  ]
+}
+```
+
+  Validate the answer:
+  - Must match `^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$`.
+  - Must **not** be `atea/mcp-server-concept`. If the user enters `atea/mcp-server-concept`, reject it:
+    > That is the source repository and cannot be used as a deployment target. Please enter your own organisation's repository (org/repo-name).
+  - Ask again until a valid value is provided.
+
 ---
 
 ## Step 3 — Configure bicep parameter files
@@ -118,7 +142,8 @@ Run the credentials script:
 ```powershell
 .\scripts\Set-DeploymentCredentials.ps1 `
   -AcrName '{AcrName}' `
-  -SubscriptionId '{SubscriptionId}'
+  -SubscriptionId '{SubscriptionId}' `
+  -RepoNameWithOwner '{RepoNameWithOwner}'
 ```
 
 Parse the JSON output. If `success` is `false`, stop and show the user the `errorMessage`.
@@ -172,7 +197,7 @@ You should see `Infrastructure/dev.bicepparam` and `Infrastructure/prod.biceppar
 ```
 git add Infrastructure/dev.bicepparam Infrastructure/prod.bicepparam .github/workflows/
 git commit -m "Configure MCP environments: {DevEnvironmentName} (dev) and {ProdEnvironmentName} (prod) with shared registry {AcrName}"
-git push
+git push origin main
 ```
 
 This will trigger the **Deploy Bicep Template** workflow in GitHub Actions. The workflow will:

@@ -20,6 +20,7 @@ function Fail {
         directoryRoleNames = @()
         availableKeyVaults = @()
         suggestedEnvironmentName = ''
+        repoNameWithOwner = ''
     }
 
     $result | ConvertTo-Json -Depth 5 -Compress
@@ -50,6 +51,8 @@ try {
         Fail 'Azure CLI not found. Install Azure CLI first: https://learn.microsoft.com/cli/azure/install-azure-cli'
     }
 
+    $repoNameWithOwner = ''
+
     if ($CheckGitHubCli) {
         $null = & gh --version 2>&1
         if ($LASTEXITCODE -ne 0) {
@@ -59,6 +62,14 @@ try {
         $null = & gh auth status 2>&1
         if ($LASTEXITCODE -ne 0) {
             Fail 'GitHub CLI is not authenticated. Run gh auth login first.'
+        }
+
+        $ghRepoRaw = & gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>&1
+        if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($ghRepoRaw)) {
+            $detected = $ghRepoRaw.Trim()
+            if ($detected -ine 'atea/mcp-server-concept') {
+                $repoNameWithOwner = $detected
+            }
         }
     }
 
@@ -123,6 +134,7 @@ try {
         directoryRoleNames = $directoryRoleNames
         availableKeyVaults = $availableKeyVaults
         suggestedEnvironmentName = $suggestedEnvironmentName
+        repoNameWithOwner = $repoNameWithOwner
     } | ConvertTo-Json -Depth 5 -Compress
 } catch {
     Fail $_.Exception.Message

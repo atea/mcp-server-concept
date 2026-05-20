@@ -97,24 +97,15 @@ Open GitHub Copilot Chat in VS Code and run:
 ```
 
 This guided prompt will:
-- Collect your environment name, location, and subscription ID
-- Deploy all shared Azure infrastructure (`Infrastructure/main.bicep`)
-- Create a service principal and store its credentials as the `AZURE_CREDENTIALS` GitHub secret
-- Set the `ACR_NAME` Actions variable (shared registry used by all environments)
+- Collect dev/prod environment names, shared registry name, location, and subscription ID
+- Write `Infrastructure/dev.bicepparam` and `Infrastructure/prod.bicepparam` with the resolved values
+- Create a service principal and store credentials as the `AZURE_CREDENTIALS` GitHub secret and `ACR_NAME` variable
+- Copy the three GitHub Actions workflow templates to `.github/workflows/`
+- Commit and push everything — this triggers the **Deploy Bicep Template** workflow that provisions all shared Azure infrastructure
 
 See [docs/setup-deployment.md](docs/setup-deployment.md) for a detailed walkthrough.
 
-### 3. Commit and push `Infrastructure/dev.bicepparam` and `Infrastructure/prod.bicepparam`
-
-The setup prompt writes your environment values into both files. Commit them:
-
-```bash
-git add Infrastructure/dev.bicepparam Infrastructure/prod.bicepparam
-git commit -m "chore: configure deployment environments"
-git push
-```
-
-### 4. Run `/create-mcp-account` to create the MCP app registration
+### 3. Run `/create-mcp-account` to create the MCP app registration
 
 ```
 /create-mcp-account
@@ -129,7 +120,7 @@ See [docs/manage-app-registrations.md](docs/manage-app-registrations.md) for det
 
 **Optional:** If you are integrating the MCP server with Copilot or other clients that use APIM (Azure API Management) and require an agent or client app with delegated permissions, run `/create-agent-account` to create the agent app registration.
 
-### 5. Run `/new-mcp-server` in GitHub Copilot Chat
+### 4. Run `/new-mcp-server` in GitHub Copilot Chat
 
 ```
 /new-mcp-server
@@ -139,24 +130,14 @@ This guided prompt scaffolds all files for a new server — C# project, Dockerfi
 
 See [docs/new-mcp-server.md](docs/new-mcp-server.md) for a detailed walkthrough.
 
-### 5. Run `/new-mcp-server` in GitHub Copilot Chat
-
-```
-/new-mcp-server
-```
-
-This guided prompt scaffolds all files for a new server — C# project, Dockerfile, `appsettings.json`, Bicep parameter file, GitHub Actions workflow, and Copilot custom connector.
-
-See [docs/new-mcp-server.md](docs/new-mcp-server.md) for a detailed walkthrough.
-
-### 6. Implement the service and tool
+### 5. Implement the service and tool
 
 Fill in the generated service and tool classes with real logic:
 
 - `MCPServers/{ServerName}/Services/{ServerName}Service.cs` — calls the upstream API
 - `MCPServers/{ServerName}/Tools/{ServerName}Tool.cs` — exposes methods to Copilot via `[McpServerTool]`
 
-### 7. Fill in the TODOs in the bicepparam file
+### 6. Fill in the TODOs in the bicepparam file
 
 Open `Infrastructure/containerApp-{ServerName}.bicepparam` and replace all `TODO` values.
 
@@ -164,14 +145,14 @@ The app registration credentials (Client ID, Client Secret, Tenant ID) are store
 
 | TODO | Replace with |
 |---|---|
-| `TODO-container-apps-environment-name` | Your `EnvironmentName` from step 2 |
-| `TODO-resource-group-name` | `rg-{EnvironmentName}` |
+| `TODO-container-apps-environment-name` | Your `DevEnvironmentName` or `ProdEnvironmentName` from `/setup-deployment` |
+| `TODO-resource-group-name` | `rg-{DevEnvironmentName}` or `rg-{ProdEnvironmentName}` |
 | `TODO-upstream-api-base-url` | Base URL of the upstream API *(apikey and noauth only)* |
 | `TODO-obo-scope` | OBO scope for the downstream API, must end in `/.default` *(obo only)* |
 | `TODO-api-base-url` | Base URL of the downstream API *(obo only)* |
-| `TODO-public-url-after-first-deploy` | Leave for now — fill in after the first deploy (step 10) |
+| `TODO-public-url-after-first-deploy` | Leave for now — fill in after the first deploy (step 9) |
 
-### 8. No need to create Key Vault secrets manually
+### 7. No need to create Key Vault secrets manually
 
 The `/create-mcp-account` prompt already created and stored the required secrets in Key Vault:
 - `{ServerName}ClientId` — Client ID of the MCP app registration
@@ -180,7 +161,7 @@ The `/create-mcp-account` prompt already created and stored the required secrets
 
 See [docs/manage-app-registrations.md — Key Vault Secret Names and Formats](docs/manage-app-registrations.md#key-vault-secret-names-and-formats) for the complete list.
 
-### 9. Commit and push
+### 8. Commit and push
 
 ```bash
 git add .
@@ -190,11 +171,11 @@ git push
 
 GitHub Actions triggers automatically: builds the Docker image, pushes it to ACR, and deploys the Container App via Bicep.
 
-### 10. Update the public URL and register the connector
+### 9. Update the public URL and register the connector
 
 After the first successful deployment, find the Container App's public URL in the Azure Portal (or via `az containerapp show`). Update `EntraIdAuth__PublicUrl` in the bicepparam file and push again. Then add `Copilot/CustomConnectors/{ServerName}.swagger.json` as a Copilot Custom Connector in Copilot Studio.
 
-### 11. (Optional) Add a web reply URI for agent/client apps
+### 10. (Optional) Add a web reply URI for agent/client apps
 
 If you created an agent app with `/create-agent-account` for Copilot or APIM integration and the client is a web application using OAuth 2.0 redirects, run:
 
@@ -216,16 +197,18 @@ to add the client's redirect URI. See [docs/manage-app-registrations.md — Step
 │   ├── create-agent-account.prompt.md          Copilot agent — create agent app registration
 │   ├── set-reply-uri.prompt.md                 Copilot agent — add OAuth reply URI
 │   └── new-mcp-server.prompt.md                Copilot agent — scaffold a new MCP server
-├── templates/mcp-server/                       File templates used by /new-mcp-server
-└── workflows/
-    ├── docker-publish-template.yml              Reusable: build and push Docker image
-    └── docker-deploy-containerapp-template.yml  Reusable: deploy Bicep to Azure
+└── templates/
+    ├── mcp-server/                             File templates used by /new-mcp-server
+    ├── deploy-bicep.yml                        Copied to workflows/ by /setup-deployment — deploys shared Bicep infrastructure
+    ├── docker-publish-template.yml             Copied to workflows/ by /setup-deployment — build and push Docker image
+    └── docker-deploy-containerapp-template.yml Copied to workflows/ by /setup-deployment — deploy Container App
 Copilot/
 └── CustomConnectors/                           Generated swagger files for Copilot connectors
 Infrastructure/
 ├── main.bicep                                  Shared infrastructure (ACR, KV, ACA env, …)
 ├── containerApp.bicep                          Per-server Container App deployment
-└── dev.bicepparam                              Environment parameters (updated by /setup-deployment)
+├── dev.bicepparam                              Dev environment parameters (written by /setup-deployment)
+└── prod.bicepparam                             Prod environment parameters (written by /setup-deployment)
 MCPServers/
 └── Shared/                                     Shared .NET library (auth, telemetry, token exchange)
 docs/

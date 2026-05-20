@@ -6,6 +6,14 @@ Run it **once** to provision the full shared Azure infrastructure — a dedicate
 
 ---
 
+## Prerequisites
+
+Before running `/setup-deployment`, ensure you are working in **your own repository** — not `atea/mcp-server-concept`.
+
+The source project lives at `atea/mcp-server-concept`. All deployments must target a separate repository in your own organisation (e.g. `acme/mcp-server-concept` or `acme/my-mcp-project`). The setup agent automatically detects the target repository from the current working directory. If it resolves to `atea/mcp-server-concept`, you will be prompted to provide the correct `org/repo-name` before any deployment or credential step proceeds. The value `atea/mcp-server-concept` is rejected as a target at every step — in both the prompt and the scripts.
+
+---
+
 ## What it does
 
 `/setup-deployment` provisions the shared resources that every MCP server in this repository depends on:
@@ -76,29 +84,77 @@ All other resource names are derived automatically:
 
 ### Step 2 — Verify prerequisites
 
-The agent checks that `az` (Azure CLI) and `gh` (GitHub CLI) are installed and that both are authenticated (`az account show`, `gh auth status`).
+The agent checks that `az` (Azure CLI) and `gh` (GitHub CLI) are installed and that both are authenticated (`az account show`, `gh auth status`). It also verifies you have an Entra ID role (Application Developer, Application Administrator, or Global Administrator) in the current tenant.
+
+It also detects the target GitHub repository from the current directory using `gh repo view`. If the detected repository is `atea/mcp-server-concept` or cannot be determined, you will be asked to enter your organisation's repository (`org/repo-name`) before proceeding. The value `atea/mcp-server-concept` is never accepted as a deployment target.
 
 If either check fails the agent stops with instructions — nothing is deployed until prerequisites are met.
 
-### Step 3 — Set active subscription
+### Step 3 — Configure Bicep parameter files
+
+Runs `scripts/Set-BicepParams.ps1`, which:
+
+1. Sets the active Azure subscription: `az account set --subscription {SubscriptionId}`
+2. Writes the resolved values into `Infrastructure/dev.bicepparam` and `Infrastructure/prod.bicepparam`
+
+Both files are committed to the repository and serve as the permanent record of the shared environment configuration. Both reference the same `acrName` and `acrResourceGroupName` so dev and prod share a single registry.
+
+### Step 4 — Create service principal and store credentials
+
+Runs `scripts/Set-DeploymentCredentials.ps1 -AcrName {AcrName} -SubscriptionId {SubscriptionId} -RepoNameWithOwner {RepoNameWithOwner}`, which:
+
+1. **Creates or resets** the service principal `sp-mcp-{AcrName}` — idempotent: reuses an existing SP and resets its credentials if one already exists
+2. **Assigns Owner** role on subscription `{SubscriptionId}` — skipped if already assigned
+3. **Stores credentials** in your repository, explicitly pinned to `{RepoNameWithOwner}`:
 
 ```
-az account set --subscription {SubscriptionId}
+gh secret set AZURE_CREDENTIALS --app actions --repo {RepoNameWithOwner}
+gh variable set ACR_NAME --body "{AcrName}" --repo {RepoNameWithOwner}
 ```
 
-Ensures subsequent `az` commands target the correct subscription.
+Credentials are piped directly from memory — never written to disk or printed to the terminal. The Owner role is required because the Bicep template assigns `AcrPull` and `AcrPush` roles inline during deployment using `deployer().objectId`.
 
-### Step 4 — Update Infrastructure/dev.bicepparam and Infrastructure/prod.bicepparam
+### Step 5 — Copy workflow templates
 
-The agent writes your resolved values into both `Infrastructure/dev.bicepparam` and `Infrastructure/prod.bicepparam`. Both files are committed to the repository and serve as the permanent record of the shared environment configuration. Both reference the same `acrName` and `acrResourceGroupName` to point at the shared registry.
+Copies the three GitHub Actions workflow templates from `.github/templates/` to `.github/workflows/`:
 
-### Step 5 — Deploy shared infrastructure
+| Template | Purpose |
+|---|---|
+| `deploy-bicep.yml` | Deploys Bicep infrastructure on pushes to `Infrastructure/` |
+| `docker-publish-template.yml` | Builds and pushes Docker images to ACR |
+| `docker-deploy-containerapp-template.yml` | Updates Container App revisions |
 
-The GitHub Actions workflow (`.github/workflows/deploy-bicep.yml`) deploys `Infrastructure/main.bicep` **twice** on every push to the `Infrastructure/` folder: once with `dev.bicepparam` and once with `prod.bicepparam`. This creates or updates all three resource groups in a single CI/CD run.
+### Step 6 — Completion checklist
 
-On first run, the dev deployment creates the shared ACR resource group and the ACR itself; the prod deployment reuses the same ACR and adds the prod Container Apps environment identity as an `AcrPull` assignee. Both identity role assignments are idempotent — re-running either deployment never removes the other environment’s access.
+The agent prints a summary of every action completed:
 
-You can also run a deployment manually:
+```
+✅ Infrastructure/dev.bicepparam updated
+✅ Infrastructure/prod.bicepparam updated
+✅ Service principal sp-mcp-{AcrName} created or updated
+✅ Owner role assigned to SP on subscription {SubscriptionId}
+✅ AZURE_CREDENTIALS secret set in GitHub Actions
+✅ ACR_NAME variable set to {AcrName}
+✅ Workflow templates copied to .github/workflows/
+```
+
+### Step 7 — Commit and push to trigger deployment
+
+```
+git add Infrastructure/dev.bicepparam Infrastructure/prod.bicepparam .github/workflows/
+git commit -m "Configure MCP environments: {DevEnvironmentName} (dev) and {ProdEnvironmentName} (prod) with shared registry {AcrName}"
+git push origin main
+```
+
+This pushes to your own repository (`{RepoNameWithOwner}`), not the source repository. It triggers the **Deploy Bicep Template** workflow, which deploys `Infrastructure/main.bicep` twice — once with `dev.bicepparam` and once with `prod.bicepparam` — creating all three resource groups.
+
+On first run, the dev deployment creates the shared ACR and its resource group; the prod deployment reuses the same ACR and adds the prod Container Apps identity as an `AcrPull` assignee. Both role assignments are idempotent — re-running never removes the other environment's access.
+
+Each deployment takes 3–8 minutes on first run. Uses [Azure Verified Modules](https://azure.github.io/Azure-Verified-Modules/) for all resources.
+
+#### Manual deployment option
+
+If you need to deploy infrastructure without pushing to GitHub:
 
 ```
 az deployment sub create \
@@ -113,49 +169,6 @@ az deployment sub create \
   --template-file Infrastructure/main.bicep \
   --parameters Infrastructure/prod.bicepparam
 ```
-
-Each deployment takes 3–8 minutes on first run. Uses [Azure Verified Modules](https://azure.github.io/Azure-Verified-Modules/) for all resources.
-
-### Step 6 — Create service principal
-
-```
-az ad sp create-for-rbac --name "sp-mcp-{AcrName}" --json-auth --output json
-```
-
-Creates a service principal with client credentials. The `--json-auth` flag produces the JSON structure that `azure/login` and `azure/docker-login` GitHub Actions expect.
-
-The agent captures the JSON **into a shell variable without printing it to the terminal**.
-
-### Step 7 — Assign Owner on the subscription
-
-```
-az role assignment create \
-  --assignee {clientId} \
-  --role Owner \
-  --scope /subscriptions/{SubscriptionId}
-```
-
-Grants the service principal permission to create resource groups, deploy Bicep templates, and assign roles during deployment (the Bicep template grants `AcrPull` and `AcrPush` inline using `deployer().objectId`).
-
-### Step 8 — Store credentials in GitHub
-
-The service principal JSON is piped **directly** from the shell variable to the GitHub CLI:
-
-```
-echo $SP_JSON | gh secret set AZURE_CREDENTIALS --app actions
-```
-
-The shared ACR name is stored as a repository variable for both environments (both point to the same registry):
-
-```
-gh variable set ACR_NAME --body "{AcrName}"
-```
-
-The CI/CD docker-publish template uses the shared `ACR_NAME` variable to push images to the registry for all environments.
-
-### Step 9 — Completion checklist
-
-The agent prints a summary of everything that was done and prompts you to run `/new-mcp-server` next.
 
 ---
 

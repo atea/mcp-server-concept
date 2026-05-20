@@ -41,7 +41,7 @@ jobs:
 
   deploy-prod:
     name: "Deploy Prod environment"
-    if: github.event_name == 'release' && startsWith(github.ref, 'refs/tags/infrastructure/')
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
       contents: read
