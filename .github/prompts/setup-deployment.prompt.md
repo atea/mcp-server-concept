@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Provision the shared MCP environment and store credentials as GitHub Actions secrets. Triggered by "/setup-deployment".
 ---
 
@@ -161,30 +161,16 @@ This script (idempotent):
 Copy the three GitHub Actions workflow templates from `.github/templates/` to `.github/workflows/`:
 
 ```
+md .github/workflows/
 cp .github/templates/deploy-bicep.yml .github/workflows/
 cp .github/templates/docker-deploy-containerapp-template.yml .github/workflows/
 cp .github/templates/docker-publish-template.yml .github/workflows/
 ```
 
----
-
-## Step 6 — Print completion checklist
-
-Print a checklist of every action completed. Mark each item ✅:
-
-```
-✅ Infrastructure/dev.bicepparam updated
-✅ Infrastructure/prod.bicepparam updated
-✅ Service principal sp-mcp-{AcrName} created or updated
-✅ Owner role assigned to SP on subscription {SubscriptionId}
-✅ AZURE_CREDENTIALS secret set in GitHub Actions
-✅ ACR_NAME variable set to {AcrName}
-✅ Workflow templates copied to .github/workflows/
-```
 
 ---
 
-## Step 7 — Commit and push to trigger deployment
+## Step 6 — Commit and push to trigger deployment
 
 Review your changes:
 
@@ -207,3 +193,20 @@ Monitor the workflow in the **Actions** tab of your repository.
 
 Then print:
 > **Next step:** Once the GitHub Actions workflow completes successfully, run **/new-mcp-server** to scaffold your first MCP server.
+
+---
+
+## Step 7 — Print completion checklist
+
+Print a checklist of every action completed. Mark each item ✅:
+
+```
+✅ Infrastructure/dev.bicepparam updated
+✅ Infrastructure/prod.bicepparam updated
+✅ Service principal sp-mcp-{AcrName} created or updated
+✅ Owner role assigned to SP on subscription {SubscriptionId}
+✅ AZURE_CREDENTIALS secret set in GitHub Actions
+✅ ACR_NAME variable set to {AcrName}
+✅ Workflow templates copied to .github/workflows/
+✅ Changes committed and pushed to main branch
+```

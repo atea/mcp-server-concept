@@ -359,8 +359,7 @@ try {
     Write-Host "  1. Review Infrastructure/containerApp-${ServerName}.dev.bicepparam and Infrastructure/containerApp-${ServerName}.prod.bicepparam (prefilled from dev.bicepparam and prod.bicepparam respectively)"
     switch ($AuthType) {
         'obo' {
-            Write-Host "  2. Create Key Vault secrets: ${serverNameLower}clientid, ${serverNameLower}clientsecret, ${serverNameLower}tenantid"
-            Write-Host "  3. Configure the Entra ID app registration (expose api://<clientId>/mcp.tools scope)"
+            Write-Host "  2. Run /create-mcp-account to create a service principal and store credentials in Key Vault (secrets: ${serverNameLower}clientid, ${serverNameLower}clientsecret, ${serverNameLower}tenantid)"
             Write-Host "  4. Fill in DownstreamApi__Scope (OBO scope ending in /.default) and DownstreamApi__BaseUrl in the bicepparam"
             Write-Host "  5. Implement your business logic in MCPServers/$ServerName/Services/${ServerName}Service.cs"
             Write-Host "  6. Implement your tool methods in MCPServers/$ServerName/Tools/${ServerName}Tool.cs"
@@ -370,8 +369,7 @@ try {
             Write-Host " 10. After first deploy, update EntraIdAuth__PublicUrl in the bicepparam and the swagger.json server URL"
         }
         'apikey' {
-            Write-Host "  2. Create Key Vault secrets: ${serverNameLower}apikey, ${serverNameLower}clientid, ${serverNameLower}clientsecret, ${serverNameLower}tenantid"
-            Write-Host "  3. Configure the Entra ID app registration (expose api://<clientId>/mcp.tools scope)"
+            Write-Host "  2. Run /create-mcp-account to create a service principal and store credentials in Key Vault (secrets: ${serverNameLower}apikey, ${serverNameLower}clientid, ${serverNameLower}clientsecret, ${serverNameLower}tenantid)"
             Write-Host "  4. Implement your business logic in MCPServers/$ServerName/Services/${ServerName}Service.cs"
             Write-Host "  5. Implement your tool methods in MCPServers/$ServerName/Tools/${ServerName}Tool.cs"
             Write-Host "  6. Fill in dev credentials in MCPServers/$ServerName/appsettings.Development.json"
@@ -380,8 +378,7 @@ try {
             Write-Host "  9. After first deploy, update EntraIdAuth__PublicUrl in the bicepparam and the swagger.json server URL"
         }
         'noauth' {
-            Write-Host "  2. Create Key Vault secrets: ${serverNameLower}clientid, ${serverNameLower}clientsecret, ${serverNameLower}tenantid"
-            Write-Host "  3. Configure the Entra ID app registration (expose api://<clientId>/mcp.tools scope)"
+            Write-Host "  2. Run /create-mcp-account to create a service principal and store credentials in Key Vault (secrets: ${serverNameLower}clientid, ${serverNameLower}clientsecret, ${serverNameLower}tenantid)"
             Write-Host "  4. Set the upstream API base URL (${ApiConfigSection}__BaseUrl) in the bicepparam environment section"
             Write-Host "  5. Implement your business logic in MCPServers/$ServerName/Services/${ServerName}Service.cs"
             Write-Host "  6. Implement your tool methods in MCPServers/$ServerName/Tools/${ServerName}Tool.cs"

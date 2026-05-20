@@ -26,6 +26,9 @@ jobs:
   deploy-dev:
     needs: publish-dev
     if: needs.publish-dev.result == 'success'
+    concurrency:
+      group: azure-deploy-dev
+      cancel-in-progress: false
     uses: ./.github/workflows/docker-deploy-containerapp-template.yml
     with:
       parameter_file_name: containerApp-{{ServerName}}.dev.bicepparam
@@ -45,6 +48,9 @@ jobs:
   deploy-prod:
     needs: publish-prod
     if: needs.publish-prod.result == 'success'
+    concurrency:
+      group: azure-deploy-prod
+      cancel-in-progress: false
     uses: ./.github/workflows/docker-deploy-containerapp-template.yml
     with:
       parameter_file_name: containerApp-{{ServerName}}.prod.bicepparam

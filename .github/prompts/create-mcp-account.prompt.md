@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Create or update the MCP app registration and store credentials in Key Vault. Triggered by "/create-mcp-account".
 ---
 
@@ -20,7 +20,7 @@ Do not re-implement their Azure CLI logic inline in this prompt.
 Run:
 
 ```powershell
-pwsh -NoProfile -File .\scripts\Validate-ProvisioningEnvironment.ps1
+& ".\scripts\Validate-ProvisioningEnvironment.ps1"
 ```
 
 The script returns JSON. Parse it into `prereq`.
@@ -114,7 +114,7 @@ Validate **KeyVaultName**:
 Run:
 
 ```powershell
-pwsh -NoProfile -File .\scripts\New-EntraAppRegistration.ps1 -ServerName "{ServerName}" -KeyVaultName "{KeyVaultName}" -SubscriptionId "{subscriptionId}" -AccountType "mcp"
+& ".\scripts\New-EntraAppRegistration.ps1" -ServerName "{ServerName}" -KeyVaultName "{KeyVaultName}" -SubscriptionId "{subscriptionId}" -AccountType "mcp"
 ```
 
 The script returns JSON. Parse it into `result`.

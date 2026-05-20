@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Scaffold a new MCP Server in this repository. Triggered by "/new-mcp-server".
 ---
 
@@ -69,7 +69,7 @@ Echo the resolved values in one line before proceeding:
 
 ## Step 2 — Run the scaffolding script
 
-Run the following command in the terminal from the repository root. Build the argument list from the collected inputs:
+Run the following command in the terminal from the repository root. It will run for approximately 45 seconds. Build the argument list from the collected inputs:
 
 **Always include:**
 ```powershell

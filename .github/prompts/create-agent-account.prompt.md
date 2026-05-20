@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Create or update the agent/client app registration for Copilot or APIM integration. Triggered by "/create-agent-account".
 ---
 
@@ -20,7 +20,7 @@ Do not re-implement their Azure CLI logic inline in this prompt.
 Run:
 
 ```powershell
-pwsh -NoProfile -File .\scripts\Validate-ProvisioningEnvironment.ps1
+& ".\scripts\Validate-ProvisioningEnvironment.ps1"
 ```
 
 The script returns JSON. Parse it into `prereq`.
@@ -116,7 +116,7 @@ Validate the inputs:
 Run:
 
 ```powershell
-pwsh -NoProfile -File .\scripts\New-EntraAppRegistration.ps1 -ServerName "{ServerName}" -McpAppId "{McpAppId}" -KeyVaultName "{KeyVaultName}" -SubscriptionId "{subscriptionId}" -AccountType "agent"
+& ".\scripts\New-EntraAppRegistration.ps1" -ServerName "{ServerName}" -McpAppId "{McpAppId}" -KeyVaultName "{KeyVaultName}" -SubscriptionId "{subscriptionId}" -AccountType "agent"
 ```
 
 The script returns JSON. Parse it into `result`.

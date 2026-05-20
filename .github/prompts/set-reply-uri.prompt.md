@@ -1,5 +1,5 @@
 ---
-mode: agent
+agent: agent
 description: Add a reply URI (web redirect URI) to an app registration. Triggered by "/set-reply-uri".
 ---
 
