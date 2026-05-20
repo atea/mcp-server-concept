@@ -1,6 +1,3 @@
-@description('The Azure region to deploy resources into')
-param location string
-
 @description('Environment Name is used throughout resources to create unique names')
 param environmentName string
 
