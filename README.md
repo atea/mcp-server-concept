@@ -115,14 +115,7 @@ This guided prompt scaffolds all files for a new server — C# project, Dockerfi
 
 See [docs/new-mcp-server.md](docs/new-mcp-server.md) for a detailed walkthrough.
 
-### 4. Implement the service and tool
-
-Fill in the generated service and tool classes with real logic:
-
-- `MCPServers/{ServerName}/Services/{ServerName}Service.cs` — calls the upstream API
-- `MCPServers/{ServerName}/Tools/{ServerName}Tool.cs` — exposes methods to Copilot via `[McpServerTool]`
-
-### 5. Run `/create-mcp-account` to create the MCP app registration
+### 4. Run `/create-mcp-account` to create the MCP app registration
 
 ```
 /create-mcp-account
@@ -134,6 +127,13 @@ This guided prompt will:
 - Create a client secret and store all credentials in Key Vault
 
 See [docs/manage-app-registrations.md](docs/manage-app-registrations.md) for details.
+
+### 5. Implement the service and tool
+
+Fill in the generated service and tool classes with real logic:
+
+- `MCPServers/{ServerName}/Services/{ServerName}Service.cs` — calls the upstream API
+- `MCPServers/{ServerName}/Tools/{ServerName}Tool.cs` — exposes methods to Copilot via `[McpServerTool]`
 
 ### 6. Fill in the TODOs in the bicepparam file
 
