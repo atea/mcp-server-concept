@@ -128,12 +128,25 @@ This guided prompt will:
 
 See [docs/manage-app-registrations.md](docs/manage-app-registrations.md) for details.
 
-### 5. Implement the service and tool
+### 4. Implement the service and tool
 
 Fill in the generated service and tool classes with real logic:
 
 - `MCPServers/{ServerName}/Services/{ServerName}Service.cs` — calls the upstream API
 - `MCPServers/{ServerName}/Tools/{ServerName}Tool.cs` — exposes methods to Copilot via `[McpServerTool]`
+
+### 5. Run `/create-mcp-account` to create the MCP app registration
+
+```
+/create-mcp-account
+```
+
+This guided prompt will:
+- Create an app registration for the MCP server (or reuse an existing one)
+- Expose an API scope for delegated access
+- Create a client secret and store all credentials in Key Vault
+
+See [docs/manage-app-registrations.md](docs/manage-app-registrations.md) for details.
 
 ### 6. Fill in the TODOs in the bicepparam file
 
