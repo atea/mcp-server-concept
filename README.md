@@ -105,7 +105,24 @@ This guided prompt will:
 
 See [docs/setup-deployment.md](docs/setup-deployment.md) for a detailed walkthrough.
 
-### 3. Run `/create-mcp-account` to create the MCP app registration
+### 3. Run `/new-mcp-server` in GitHub Copilot Chat
+
+```
+/new-mcp-server
+```
+
+This guided prompt scaffolds all files for a new server — C# project, Dockerfile, `appsettings.json`, Bicep parameter file, GitHub Actions workflow, and Copilot custom connector.
+
+See [docs/new-mcp-server.md](docs/new-mcp-server.md) for a detailed walkthrough.
+
+### 4. Implement the service and tool
+
+Fill in the generated service and tool classes with real logic:
+
+- `MCPServers/{ServerName}/Services/{ServerName}Service.cs` — calls the upstream API
+- `MCPServers/{ServerName}/Tools/{ServerName}Tool.cs` — exposes methods to Copilot via `[McpServerTool]`
+
+### 5. Run `/create-mcp-account` to create the MCP app registration
 
 ```
 /create-mcp-account
@@ -117,25 +134,6 @@ This guided prompt will:
 - Create a client secret and store all credentials in Key Vault
 
 See [docs/manage-app-registrations.md](docs/manage-app-registrations.md) for details.
-
-**Optional:** If you are integrating the MCP server with Copilot or other clients that use APIM (Azure API Management) and require an agent or client app with delegated permissions, run `/create-agent-account` to create the agent app registration.
-
-### 4. Run `/new-mcp-server` in GitHub Copilot Chat
-
-```
-/new-mcp-server
-```
-
-This guided prompt scaffolds all files for a new server — C# project, Dockerfile, `appsettings.json`, Bicep parameter file, GitHub Actions workflow, and Copilot custom connector.
-
-See [docs/new-mcp-server.md](docs/new-mcp-server.md) for a detailed walkthrough.
-
-### 5. Implement the service and tool
-
-Fill in the generated service and tool classes with real logic:
-
-- `MCPServers/{ServerName}/Services/{ServerName}Service.cs` — calls the upstream API
-- `MCPServers/{ServerName}/Tools/{ServerName}Tool.cs` — exposes methods to Copilot via `[McpServerTool]`
 
 ### 6. Fill in the TODOs in the bicepparam file
 
@@ -192,7 +190,7 @@ to add the client's redirect URI. See [docs/manage-app-registrations.md — Step
 ```
 .github/
 ├── prompts/
-│   ├── setup-deployment.prompt.md             Copilot agent — provision Azure + configure CI/CD
+│   ├── setup-deployment.prompt.md              Copilot agent — provision Azure + configure CI/CD
 │   ├── create-mcp-account.prompt.md            Copilot agent — create MCP app registration
 │   ├── create-agent-account.prompt.md          Copilot agent — create agent app registration
 │   ├── set-reply-uri.prompt.md                 Copilot agent — add OAuth reply URI
@@ -223,8 +221,8 @@ docs/
 
 All MCP servers in this scaffold protect their own endpoint with **Entra ID JWT bearer** (inbound auth). The `AuthType` only controls how the **service layer** calls the downstream API.
 
-**obo (On-Behalf-Of)** — the downstream API uses Entra ID (e.g. Dynamics 365, Power BI, Microsoft Graph). The MCP server performs an OAuth 2.0 On-Behalf-Of token exchange using MSAL so requests are made in the context of the signed-in user. Client credentials are stored in Key Vault.
+**obo (On-Behalf-Of)** — the downstream API uses Entra ID (e.g. Dynamics 365, Power BI, Microsoft Graph). The MCP server performs an OAuth 2.0 On-Behalf-Of token exchange using MSAL so requests are made in the context of the signed-in user. 
 
 **apikey** — the downstream API authenticates with a static key passed as a request header. The key is stored in Key Vault and injected as an environment variable at runtime.
 
-**noauth** — the downstream API has no authentication (open or internal API). No auth header is sent to the upstream API.
+**noauth** — the downstream API has no authentication (open or internal API). No auth header is sent to the downstream API.

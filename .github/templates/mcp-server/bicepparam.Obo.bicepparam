@@ -41,7 +41,7 @@ param environment = [
     value: 'TODO-obo-scope-ending-in-.default-e.g.-https://org.crm4.dynamics.com/.default'
   }
   {
-    name: 'DownstreamApi__BaseUrl'
+    name: '{{ApiConfigSection}}__BaseUrl'
     value: 'TODO-api-base-url-e.g.-https://org.crm4.dynamics.com/api/data/v9.2'
   }
   {

@@ -147,6 +147,10 @@ Key Vault secrets created:
 - Existing Key Vault secrets will be overwritten with the new credentials
 - Running the command again is safe and will not create duplicate registrations
 
+### **IMORTANT**
+
+If your MCP Server code requires access to other applications in the tenant - On-Behalf-Of workflows - you need to configure the application with the correct API access (usually delegated access) in order to pass the identity to the other application.
+
 ---
 
 ## Step 2: Create Agent Account (Optional)
@@ -257,7 +261,7 @@ Run (only if the agent is a **web client application** using OAuth 2.0 redirects
 
 | Input | Description | Example |
 |---|---|---|
-| **AppDisplayName** | Display name of the app registration | `agent-WeatherForecast` or `mcp-PartnerCenter` |
+| **AppDisplayName** | Display name of the app registration | `agent-WeatherForecast` |
 | **ReplyUri** | HTTPS web redirect URI | `https://myapp.azurewebsites.net/auth/callback` |
 
 ### Step-by-step walkthrough
